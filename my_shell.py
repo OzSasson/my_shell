@@ -1,5 +1,7 @@
-import os, shutil, datetime
+import datetime
 import glob
+import os
+import shutil
 import subprocess
 
 func_dic = {
@@ -14,8 +16,7 @@ func_dic = {
     'help': 'Shows what every command does'
 }
 
-path=[]
-path_s=r'C:\3.11\Scripts\;C:\3.11\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\310\Scripts\;C:\310\;C:\Users\shaha\AppData\Local\Microsoft\WindowsApps;C:\Users\shaha\.dotnet\tools;;C:\Program Files\JetBrains\PyCharm Community Edition 2022.2\bin;'
+
 def print_dict():
     global func_dic
     for key, value in func_dic.items():
@@ -37,34 +38,8 @@ def helP(com):
         print(f'Command "{com}" not found in the dictionary.')
 
 
-def make_path():
-    global path
-    global path_s
-    ls=path_s.split(';')
-    for i in range(0,4):
-        path.append(ls[i])
-    print(path)
-    
 def exiT():
     exit()
-
-
-def seT(var=None):
-    if var:
-        if '=' not in var:
-            var = var.upper()
-            res = os.environ.get(var)
-            if res:
-                print(f'{var}={res}')
-            else:
-                print(f'Environment variable {var} not defined')
-        else:
-            var = var.split('=')
-            os.environ[var[0]] = var[1]
-
-    else:
-        for var, value in os.environ.items():
-            print(f"{var}={value}")
 
 
 def diR(path):
@@ -115,30 +90,6 @@ def cls():
     print("\033c", end="")
 
 
-def run_exe(lst1):
-    global path
-    if lst1[0].endswith('.py'):
-        lst1 = ['python.exe'] + lst1
-    if lst1[0].endswith('.exe'):
-        s = os.path.join(os.getcwd(), lst1[0])
-        if os.path.exists(s):
-            lst1[0] = s
-            result = subprocess.run(lst1, stdin=None, stdout=None, stderr=None, shell=True)
-        else:
-            for i in path:
-                s = os.path.join(i, lst1[0])
-                if os.path.exists(s):
-                    lst1[0] = s
-                    result = subprocess.run(lst1, stdin=None, stdout=None, stderr=None, shell=True)
-                    break
-            else:
-                print(
-                    f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
-    else:
-        print(
-            f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
-
-
 def deL(path):
     matching_paths = glob.glob(path)
 
@@ -160,8 +111,74 @@ def deL(path):
             print(f'Error deleting {path}: {e}')
 
 
-def check_command(inp):
-    ls = inp.split(" ")
+def seT(var=None):
+    if var:
+        if '=' not in var:
+            var = var.upper()
+            res = os.environ.get(var)
+            if res:
+                print(f'{var}={res}')
+            else:
+                print(f'Environment variable {var} not defined')
+        else:
+            var = var.split('=')
+            os.environ[var[0]] = var[1]
+
+    else:
+        for var, value in os.environ.items():
+            print(f"{var}={value}")
+
+
+def run_exe(lst1, stdin=None, stdout=None, PIPE=False):
+    global path
+    if lst1[0].endswith('.py'):
+        lst1 = ['python.exe'] + lst1
+    if lst1[0].endswith('.exe'):
+        s = os.path.join(os.getcwd(), lst1[0])
+        if os.path.exists(s):
+            lst1[0] = s
+            if not PIPE:
+                return subprocess.run(lst1, stdin=stdin, stdout=stdout, stderr=None, shell=True)
+            else:
+                return subprocess.Popen(lst1, stdin=stdin, stdout=stdout, stderr=None, shell=True)
+        else:
+            for i in path:
+                s = os.path.join(i, lst1[0])
+                if os.path.exists(s):
+                    lst1[0] = s
+                    if not PIPE:
+                        return subprocess.run(lst1, stdin=stdin, stdout=stdout, stderr=None, shell=True)
+                    else:
+                        return subprocess.Popen(lst1, stdin=stdin, stdout=stdout, stderr=None, shell=True)
+            else:
+                print(
+                    f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
+    else:
+        print(
+            f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
+
+
+path = []
+path_s = r'C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\iCLS\;C:\Program Files\Intel\Intel(R) Management Engine Components\iCLS\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;D:\Microsoft VS Code\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;%SYSTEMROOT%\System32\OpenSSH\;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;;D:\PyCharm Community Edition 2022.2\bin;;C:\Users\Oz Sasson\.dotnet\tools'
+
+
+def make_path():
+    global path
+    global path_s
+    ls = path_s.split(';')
+    for i in range(0, len(ls)):
+        path.append(ls[i])
+
+
+def remove_clum(lst):
+    new_lst = []
+    for i in lst:
+        if i != '':
+            new_lst.append(i)
+    return new_lst
+
+
+def check_command(ls, stdin=None, stdout=None, PIPE=False):
     if ls[0] == 'cd':
         if len(ls) == 1:
             print(os.getcwd())
@@ -174,8 +191,6 @@ def check_command(inp):
             print_dict()
     elif ls[0] == 'exit':
         return exiT()
-    elif ls[0] == 'set':
-        return seT()
     elif ls[0] == 'dir':
         if len(ls) > 1:
             return diR(ls[1])
@@ -199,17 +214,86 @@ def check_command(inp):
             return
         deL(ls[1])
     elif ls[0] == 'set':
+        if len(ls) == 2:
+            seT(ls[1])
+            return
         seT()
     else:
-        run_exe(ls)
+        return run_exe(ls, stdin, stdout,PIPE)
+
+
+def check_pipe_or_redirect(ls):
+    if '|' in ls[1:len(ls) - 1]:
+        pipe(ls)
+        return True
+    elif '>' in ls[1:len(ls) - 1]:
+        redirect_right(ls)
+        return True
+    elif '<' in ls[1:len(ls) - 1]:
+        redirect_left(ls)
+        return True
+    return False
+
+
+def redirect_right(ls):
+    lst1, s = split_lst(ls, '>')
+    with open(s, 'w') as f:
+        check_command(lst1, None, f)
+
+
+def redirect_left(ls):
+    lst1, s = split_lst(ls, '<')
+    if os.path.exists(s):
+        with open(s, 'r') as f:
+            check_command(lst1, f, None)
+    else:
+        print(f'Cant find {s}')
+
+
+def split_pipe(ls):
+    s = " ".join(ls)
+    a = s.split('|')
+    t = []
+    for i in a:
+        lst1 = i.split(' ')
+        lst1 = remove_clum(lst1)
+        t.append(lst1)
+    return t
+
+
+def pipe(ls):
+    ls = split_pipe(ls)
+    r = check_command(ls[0], None, subprocess.PIPE, True)
+    ls = ls[1:]
+    for i in range(len(ls) - 1):
+        r1 = check_command(ls[i], r.stdout, subprocess.PIPE, True)
+        r.stdout.close()
+        r = r1
+    r = check_command(ls[len(ls) - 1], r.stdout, None, True)
+    print(r.communicate())
+
+
+def split_lst(ls, st):
+    new_lst = []
+    s = ''
+    for i in range(len(ls)):
+        if ls[i] == st:
+            if i < len(ls) - 1:
+                s = ls[i + 1]
+            break
+        new_lst.append(ls[i])
+    return new_lst, s
 
 
 def main():
     make_path()
     while True:
         cmd = input(f'{os.getcwd()} :)')
-        cmd = cmd.lower().strip()
-        check_command(cmd)
+        cmd = cmd.lower().strip().split(" ")
+        cmd = remove_clum(cmd)
+        if not check_pipe_or_redirect(cmd):
+            check_command(cmd)
 
 
-main()
+if __name__ == '__main__':
+    main()
