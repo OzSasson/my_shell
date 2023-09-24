@@ -153,14 +153,15 @@ def run_exe(lst1, stdin=None, stdout=None, PIPE=False):
             else:
                 print(
                     f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
+                return False
     else:
         print(
             f"Error: The executable '{lst1[0]}' was not found in the current directory or in the specified path.")
+        return False
 
 
 path = []
-path_s = r'C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\iCLS\;C:\Program Files\Intel\Intel(R) Management Engine Components\iCLS\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;D:\Microsoft VS Code\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;%SYSTEMROOT%\System32\OpenSSH\;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;;D:\PyCharm Community Edition 2022.2\bin;;C:\Users\Oz Sasson\.dotnet\tools'
-
+path_s=r'C:\3.11\Scripts\;C:\3.11\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\310\Scripts\;C:\310\;C:\Users\shaha\AppData\Local\Microsoft\WindowsApps;C:\Users\shaha\.dotnet\tools;;C:\Program Files\JetBrains\PyCharm Community Edition 2022.2\bin;'
 
 def make_path():
     global path
@@ -219,35 +220,38 @@ def check_command(ls, stdin=None, stdout=None, PIPE=False):
             return
         seT()
     else:
-        return run_exe(ls, stdin, stdout,PIPE)
+        return run_exe(ls, stdin, stdout, PIPE)
 
 
 def check_pipe_or_redirect(ls):
-    if '|' in ls[1:len(ls) - 1]:
+    if '|' in ls:
+        ls = remove_clum(ls.split(" "))
         pipe(ls)
         return True
-    elif '>' in ls[1:len(ls) - 1]:
+    elif '>' in ls:
+        ls = remove_clum(ls.split(" "))
         redirect_right(ls)
         return True
-    elif '<' in ls[1:len(ls) - 1]:
+    elif '<' in ls:
+        ls = remove_clum(ls.split(" "))
         redirect_left(ls)
         return True
     return False
 
 
 def redirect_right(ls):
-    lst1, s = split_lst(ls, '>')
-    with open(s, 'w') as f:
-        check_command(lst1, None, f)
+    lst1 = split_lst(ls, '>')
+    with open(lst1[1][0], 'w') as f:
+        check_command(lst1[0], None, f)
 
 
 def redirect_left(ls):
-    lst1, s = split_lst(ls, '<')
-    if os.path.exists(s):
-        with open(s, 'r') as f:
-            check_command(lst1, f, None)
+    lst1 = split_lst(ls, '<')
+    if os.path.exists(lst1[1][0]):
+        with open(lst1[1][0], 'r') as f:
+            check_command(lst1[0], f, None)
     else:
-        print(f'Cant find {s}')
+        print(f'Cant find {lst1[1][0]}')
 
 
 def split_pipe(ls):
@@ -261,39 +265,57 @@ def split_pipe(ls):
     return t
 
 
+def cook(ls):
+    for i in ls:
+        i.kill()
+
+
 def pipe(ls):
     ls = split_pipe(ls)
+    lst = []
     r = check_command(ls[0], None, subprocess.PIPE, True)
+    if not r:
+        return
+    lst.append(r)
     ls = ls[1:]
     for i in range(len(ls) - 1):
         r1 = check_command(ls[i], r.stdout, subprocess.PIPE, True)
+        if not r1:
+            cook(lst)
+            return
+        lst.append(r1)
         r.stdout.close()
         r = r1
-    r = check_command(ls[len(ls) - 1], r.stdout, None, True)
-    print(r.communicate())
+    r1 = check_command(ls[len(ls) - 1], r.stdout, None, True)
+    if r1 is False:
+        cook(lst)
+        return
+    r.stdout.close()
+    r = r1
+    r.communicate()
 
 
 def split_lst(ls, st):
-    new_lst = []
-    s = ''
-    for i in range(len(ls)):
-        if ls[i] == st:
-            if i < len(ls) - 1:
-                s = ls[i + 1]
-            break
-        new_lst.append(ls[i])
-    return new_lst, s
+    s = " ".join(ls)
+    a = s.split(st)
+    t = []
+    for i in a:
+        lst1 = i.split(' ')
+        lst1 = remove_clum(lst1)
+        t.append(lst1)
+    return t
 
 
 def main():
     make_path()
     while True:
         cmd = input(f'{os.getcwd()} :)')
-        cmd = cmd.lower().strip().split(" ")
-        cmd = remove_clum(cmd)
+        if cmd == '':
+            continue
+        cmd = cmd.lower().strip()
         if not check_pipe_or_redirect(cmd):
+            cmd = remove_clum(cmd.split(" "))
             check_command(cmd)
 
 
-if __name__ == '__main__':
-    main()
+main()
