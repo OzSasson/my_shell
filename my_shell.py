@@ -17,33 +17,50 @@ func_dic = {
 }
 
 
-def print_dict():
+def print_dict(args=None):
     global func_dic
     for key, value in func_dic.items():
         print(f' {key} : {value}')
 
 
-def change_dir(dir):
+def change_dir(dir=None):
     try:
-        os.chdir(dir)
+        if not dir:
+            print(os.getcwd())
+            return
+        os.chdir(dir[0])
     except Exception:
-        print(f"Directory '{dir}' not found.")
+        if dir:
+            print(f"Directory '{dir[0]}' not found.")
+            return
+        print('There was an error')
 
 
 def helP(com):
     global func_dic
-    if com in func_dic:
-        print(f'It does this {com}: {func_dic[com]}')
+    flags, path = flags_path(com)
+    if path in func_dic:
+        print(f'It does this {path}: {func_dic[path]}')
     else:
-        print(f'Command "{com}" not found in the dictionary.')
+        print(f'Command "{path}" not found in the dictionary.')
 
 
 def exiT():
     exit()
 
 
+def flags_path(ls):
+    flags = []
+    if len(ls) > 1:
+        for i in range(0, len(ls) - 1):
+            flags.append(ls[i])
+    path = ls[len(ls) - 1]
+    return flags, path
+
+
 def diR(path):
     try:
+        flags, path = flags_path(path)
         entries = os.scandir(path)
         for entry in entries:
             info = entry.name
@@ -73,8 +90,14 @@ def move(src_path, dst_path):
         print(f"Cant move")
 
 
-def copy(src_path, dst_path):
+def copy(src_and_dst_path=None):
     try:
+        src_path, dst_path = '', ''
+        if not src_and_dst_path:
+            print('Not enough parameters')
+            return False
+        if len(src_and_dst_path) > 1:
+            src_path, dst_path = src_and_dst_path[0], src_and_dst_path[1]
         if not os.path.exists(src_path):
             print(f"Error: {src_path} does not exist.")
             return
@@ -82,6 +105,7 @@ def copy(src_path, dst_path):
             shutil.copy(src_path, dst_path)
         elif os.path.isdir(src_path):
             shutil.copytree(src_path, dst_path)
+        print(f'File copied')
     except Exception as e:
         print(f"Cant copy")
 
@@ -90,7 +114,11 @@ def cls():
     print("\033c", end="")
 
 
-def deL(path):
+def deL(path=None):
+    if not path:
+        print('Not enough param')
+        return False
+    flags,path=flags_path(path)
     matching_paths = glob.glob(path)
 
     if not matching_paths:
@@ -113,6 +141,7 @@ def deL(path):
 
 def seT(var=None):
     if var:
+        var = var[0]
         if '=' not in var:
             var = var.upper()
             res = os.environ.get(var)
@@ -123,7 +152,6 @@ def seT(var=None):
         else:
             var = var.split('=')
             os.environ[var[0]] = var[1]
-
     else:
         for var, value in os.environ.items():
             print(f"{var}={value}")
@@ -161,7 +189,8 @@ def run_exe(lst1, stdin=None, stdout=None, PIPE=False):
 
 
 path = []
-path_s=r'C:\3.11\Scripts\;C:\3.11\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\310\Scripts\;C:\310\;C:\Users\shaha\AppData\Local\Microsoft\WindowsApps;C:\Users\shaha\.dotnet\tools;;C:\Program Files\JetBrains\PyCharm Community Edition 2022.2\bin;'
+path_s = r'C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\iCLS\;C:\Program Files\Intel\Intel(R) Management Engine Components\iCLS\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;D:\Microsoft VS Code\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SYSTEMROOT%\System32\WindowsPowerShell\v1.0\;%SYSTEMROOT%\System32\OpenSSH\;C:\Users\Oz Sasson\AppData\Local\Microsoft\WindowsApps;;D:\PyCharm Community Edition 2022.2\bin;;C:\Users\Oz Sasson\.dotnet\tools'
+
 
 def make_path():
     global path
@@ -179,46 +208,57 @@ def remove_clum(lst):
     return new_lst
 
 
-def check_command(ls, stdin=None, stdout=None, PIPE=False):
+def python_c(func, args, stdin, stdout, redirect):
+    ls = ['python.exe', '-c', f'from main import {func}; {func}({args})']
+    return run_exe(ls, stdin, stdout, redirect)
+
+
+def check_command(ls, stdin=None, stdout=None, PIPE=False, redirect=True):
     if ls[0] == 'cd':
-        if len(ls) == 1:
-            print(os.getcwd())
-            return
-        change_dir(ls[1])
+        if PIPE:
+            return python_c('change_dir', [ls[1:]], stdin, stdout, redirect)
+        return change_dir(ls[1:])
     elif ls[0] == 'help':
-        if len(ls) > 1:
-            return helP(ls[1])
+        if PIPE:
+            if len(ls) > 1:
+                return python_c('helP', ls[1:], stdin, stdout, redirect)
+            else:
+                return python_c('print_dict', None, stdin, stdout, redirect)
         else:
-            print_dict()
+            if len(ls) > 1:
+                helP(ls[1])
+            else:
+                print_dict()
     elif ls[0] == 'exit':
         return exiT()
     elif ls[0] == 'dir':
         if len(ls) > 1:
-            return diR(ls[1])
+            if PIPE:
+                return python_c('diR', ls[1:], stdin, stdout, redirect)
+            return diR(ls[1:])
         else:
-            return diR(os.getcwd())
+            if PIPE:
+                return python_c('diR', [os.getcwd()], stdin, stdout, redirect)
+            return diR([os.getcwd()])
     elif ls[0] == 'move':
         if len(ls) != 3:
             print('Not enough parameters')
             return
         move(ls[1], ls[2])
     elif ls[0] == 'copy':
-        if len(ls) != 3:
-            print('Not enough parameters')
-            return
-        copy(ls[1], ls[2])
+        if PIPE:
+            return python_c('copy', ls[1:], stdin, stdout, redirect)
+        return copy(ls[1:])
     elif ls[0] == 'cls':
         cls()
     elif ls[0] == 'del':
-        if len(ls) != 2:
-            print('Not enough parameters')
-            return
-        deL(ls[1])
+        if PIPE:
+            return python_c('deL', ls[1:], stdin, stdout, redirect)
+        return deL(ls[1:])
     elif ls[0] == 'set':
-        if len(ls) == 2:
-            seT(ls[1])
-            return
-        seT()
+        if PIPE:
+            return python_c('seT', ls[1:], stdin, stdout, redirect)
+        return seT(ls[1:])
     else:
         return run_exe(ls, stdin, stdout, PIPE)
 
@@ -239,19 +279,20 @@ def check_pipe_or_redirect(ls):
     return False
 
 
-def redirect_right(ls):
+def redirect_right(ls, stdin=None):
     lst1 = split_lst(ls, '>')
     with open(lst1[1][0], 'w') as f:
-        check_command(lst1[0], None, f)
+        return check_command(lst1[0], stdin, f, True, False)
 
 
-def redirect_left(ls):
+def redirect_left(ls, stdout=None, PIPE=False):
     lst1 = split_lst(ls, '<')
     if os.path.exists(lst1[1][0]):
         with open(lst1[1][0], 'r') as f:
-            check_command(lst1[0], f, None)
+            return check_command(lst1[0], f, stdout, True, PIPE)
     else:
         print(f'Cant find {lst1[1][0]}')
+        return False
 
 
 def split_pipe(ls):
@@ -273,7 +314,10 @@ def cook(ls):
 def pipe(ls):
     ls = split_pipe(ls)
     lst = []
-    r = check_command(ls[0], None, subprocess.PIPE, True)
+    if '<' in ls[0]:
+        r = redirect_left(ls[0], subprocess.PIPE, True)
+    else:
+        r = check_command(ls[0], None, subprocess.PIPE, True)
     if not r:
         return
     lst.append(r)
@@ -318,4 +362,5 @@ def main():
             check_command(cmd)
 
 
-main()
+if __name__ == '__main__':
+    main()
