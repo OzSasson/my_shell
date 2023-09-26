@@ -114,13 +114,18 @@ def cls():
     print("\033c", end="")
 
 
+ls_flags = ['/h', '/s', '/l', '/a', '/r', '/t', '/o', '/p']
+
+
 def deL(path=None):
     if not path:
-        print('Not enough param')
+        print('Not enough parameters')
         return False
-    flags,path=flags_path(path)
+    flags, path = flags_path(path)
+    if path in ls_flags:
+        print('Not enough parameters')
+        return False
     matching_paths = glob.glob(path)
-
     if not matching_paths:
         print(f'No files or folders match the pattern: {path}')
         return
@@ -128,9 +133,21 @@ def deL(path=None):
     for path in matching_paths:
         try:
             if os.path.isfile(path):
+                if '/p' in flags:
+                    ans = ''
+                    while ans != 'yes':
+                        ans = input(f'Are you sure you want to delete {path}?')
+                        if ans == 'no':
+                            return
                 os.remove(path)
                 print(f'Deleted file: {path}')
             elif os.path.isdir(path):
+                if '/p' in flags:
+                    ans = ''
+                    while ans != 'yes':
+                        ans = input(f'Are you sure you want to delete {path}?')
+                        if ans == 'no':
+                            return
                 shutil.rmtree(path)
                 print(f'Deleted folder and its contents: {path}')
             else:
@@ -213,6 +230,14 @@ def python_c(func, args, stdin, stdout, redirect):
     return run_exe(ls, stdin, stdout, redirect)
 
 
+def checkF(ls):
+    global ls_flags
+    for i in ls:
+        if i not in ls_flags:
+            return False
+    return True
+
+
 def check_command(ls, stdin=None, stdout=None, PIPE=False, redirect=True):
     if ls[0] == 'cd':
         if PIPE:
@@ -233,6 +258,8 @@ def check_command(ls, stdin=None, stdout=None, PIPE=False, redirect=True):
         return exiT()
     elif ls[0] == 'dir':
         if len(ls) > 1:
+            if checkF(ls[1:]):
+                ls.append(os.getcwd())
             if PIPE:
                 return python_c('diR', ls[1:], stdin, stdout, redirect)
             return diR(ls[1:])
@@ -289,7 +316,7 @@ def redirect_left(ls, stdout=None, PIPE=False):
     lst1 = split_lst(ls, '<')
     if os.path.exists(lst1[1][0]):
         with open(lst1[1][0], 'r') as f:
-            return check_command(lst1[0], f, stdout, True, PIPE)
+            return check_command(lst1[0], f, stdout, PIPE, True)
     else:
         print(f'Cant find {lst1[1][0]}')
         return False
@@ -330,7 +357,10 @@ def pipe(ls):
         lst.append(r1)
         r.stdout.close()
         r = r1
-    r1 = check_command(ls[len(ls) - 1], r.stdout, None, True)
+    if '>' in ls[len(ls) - 1]:
+        r1 = redirect_right(ls[len(ls) - 1], r.stdout)
+    else:
+        r1 = check_command(ls[len(ls) - 1], r.stdout, None, True)
     if r1 is False:
         cook(lst)
         return
