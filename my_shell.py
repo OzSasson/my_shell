@@ -251,7 +251,7 @@ def check_command(ls, stdin=None, stdout=None, PIPE=False, redirect=True):
                 return python_c('print_dict', None, stdin, stdout, redirect)
         else:
             if len(ls) > 1:
-                helP(ls[1])
+                helP(ls[1:])
             else:
                 print_dict()
     elif ls[0] == 'exit':
@@ -394,3 +394,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
